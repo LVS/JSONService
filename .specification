@@ -1,0 +1,7 @@
+--- !ruby/object:Gem::Specification 
+name: LVS-JSONService 
+version: !ruby/object:Gem::Version 
+  version: 0.1.1
+require_paths:
+- lib
+platform: ruby
