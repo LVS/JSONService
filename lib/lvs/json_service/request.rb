@@ -1,14 +1,15 @@
-# To change this template, choose Tools | Templates and open the template in the
-# editor.
+require 'json'
+require 'lvs/json_service/logger'
 
 module LVS
   module JsonService
     module Request
-      def self.transmit_remote_request(service, args, options)
-        # debugger
+      def self.http_request_with_timeout(service, args, options)
+
         uri = URI.parse(service)
 
         http = Net::HTTP.new(uri.host, uri.port)
+        
         if options[:encrypted] && !SSL_DISABLED
           http.use_ssl = true
           if options[:auth_cert]
@@ -16,49 +17,49 @@ module LVS
             http.key = OpenSSL::PKey::RSA.new(File.read(options[:auth_key]), options[:auth_key_password])
           end
         end
-
-        params = { "object_request"=>"#{args.to_json}"}
-
-        options[:timeout] ||= 1
-
-        http.open_timeout = options[:timeout]
-        http.read_timeout = options[:timeout]
+        
+        http.open_timeout = options[:timeout] || 1
+        http.read_timeout = options[:timeout] || 1
+        
         req = Net::HTTP::Post.new(uri.path)
-        req.form_data = params
+        req.form_data = { "object_request" => args.to_json }
 
         retries = options[:retries] || 0
-        retries += 1 # We always want to do it one more than the number of retries (the try before the retry)
 
         begin
-          response = http.start {|connection|
-            connection.request(req)
-          }
-        rescue Timeout::Error, Errno::ECONNREFUSED => e
-          if e.is_a?(Timeout::Error)
-            response = LVS::JsonService::TimeoutError.new("Backend failed to respond in time", 500, service, args)
-          elsif e.is_a?(Errno::ECONNREFUSED)
-            response = LVS::JsonService::BackendUnavailableError.new("Backend unavailable", 500, service, args)
-            sleep(options[:timeout] * 1.5)
+          retries -= 1          
+          response = http.start { |connection| connection.request(req) }
+          
+        rescue Timeout::Error
+          if retries >= 0
+            LVS::JsonService::Logger.debug(
+              "Retrying #{service} due to TimeoutError"
+            )
+            retry
           end
+          raise LVS::JsonService::TimeoutError.new("Backend failed to respond in time", 500, service, args)
+                    
+        rescue Errno::ECONNREFUSED
+          if retries >= 0
+            LVS::JsonService::Logger.debug(
+              "Retrying #{service} due to Errno::ECONNREFUSED"
+            )
+            sleep(1)  
+            retry
+          end
+          raise LVS::JsonService::BackendUnavailableError.new("Backend unavailable", 500, service, args)
+        end
 
-          retries -= 1
-          http.open_timeout = (options[:timeout] * 1.5)
-          http.read_timeout = (options[:timeout] * 1.5)
-          debug("Retrying #{service}") if retries
-        end while (retries > 0 && response.is_a?(LVS::JsonService::TimeoutError))
+        if response.is_a?(Net::HTTPNotFound)
+          raise LVS::JsonService::NotFoundError.new("404 Found for the service", 404, service, args)
+        end
 
         response
       end
 
       def self.run_remote_request(service, args, options = {})
         debug "run_remote_request('#{service}', #{args.to_json}"
-        response = transmit_remote_request(service, args, options)
-        if response.is_a? Net::HTTPNotFound
-          raise LVS::JsonService::NotFoundError.new("404 Found for the service", 404, service, args)
-        end
-        if response.is_a?(LVS::JsonService::TimeoutError) || response.is_a?(LVS::JsonService::BackendUnavailableError)
-          raise response
-        end
+        response = http_request_with_timeout(service, args, options)
         if response.body.size < 1024
           debug "Response: #{response.body.gsub(/\n/, '')}"
         else
@@ -66,12 +67,9 @@ module LVS
         end
         result = JSON.parse(response.body)
         if result.is_a?(Hash) && result.has_key?("PCode")
-          raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, self.parse_result(result))
+          raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
         end
         result
-      rescue Exception => e
-        Rails.logger.error("JSON API CALL FAIL: #{service} - #{args.to_yaml} - #{e}")
-        raise e
       end
     end
   end

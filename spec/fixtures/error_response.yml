@@ -1,0 +1,21 @@
+--- !ruby/object:Net::HTTPOK 
+body: |
+  {
+    "PCode" : 1,
+    "message": "something bad happened"
+  }
+body_exist: true
+code: "200"
+header: 
+  date: 
+  - Wed, 17 Jun 2009 13:17:54 GMT
+  content-type: 
+  - text/plain;charset=UTF-8
+  server: 
+  - Apache-Coyote/1.1
+  transfer-encoding: 
+  - chunked
+http_version: "1.1"
+message: OK
+read: true
+socket: 
