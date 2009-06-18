@@ -16,6 +16,13 @@ rescue LoadError
   puts "Jeweler (or a dependency) not available. Install it with: sudo gem install jeweler"
 end
 
+begin
+  gem 'ci_reporter'
+  require 'ci/reporter/rake/rspec'
+rescue LoadError
+  # do nothing
+end
+
 require 'spec/rake/spectask'
 Spec::Rake::SpecTask.new(:spec) do |spec|
   spec.libs << 'lib' << 'spec'
