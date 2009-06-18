@@ -36,7 +36,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.1}
-  s.summary = %q{TODO}
+  s.summary = %q{A Ruby library for interacting with external JSON services}
   s.test_files = [
     "spec/lvs/json_service/base_spec.rb",
      "spec/lvs/json_service/logger_spec.rb",
