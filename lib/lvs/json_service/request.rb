@@ -58,12 +58,12 @@ module LVS
       end
 
       def self.run_remote_request(service, args, options = {})
-        debug "run_remote_request('#{service}', #{args.to_json}"
+        LVS::JsonService::Logger.debug "run_remote_request('#{service}', #{args.to_json}"
         response = http_request_with_timeout(service, args, options)
         if response.body.size < 1024
-          debug "Response: #{response.body.gsub(/\n/, '')}"
+          LVS::JsonService::Logger.debug "Response: #{response.body.gsub(/\n/, '')}"
         else
-          debug "Response Snippet: #{response.body.gsub(/\n/, '')[0..1024]}"
+          LVS::JsonService::Logger.debug "Response Snippet: #{response.body.gsub(/\n/, '')[0..1024]}"
         end
         result = JSON.parse(response.body)
         if result.is_a?(Hash) && result.has_key?("PCode")

@@ -21,7 +21,7 @@ describe LVS::JsonService::Logger do
     describe "without RAILS_ROOT set" do
       before :each do
         LVS::JsonService::Logger.module_eval do
-          remove_const(:RAILS_DEFAULT_LOGGER)
+          remove_const(:RAILS_DEFAULT_LOGGER) if const_defined?(:RAILS_DEFAULT_LOGGER)
         end
       end
 
