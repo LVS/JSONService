@@ -121,12 +121,12 @@ describe LVS::JsonService::Request do
       
       before :each do
         @options = {:retries => 2}
-        LVS::JsonService::Request.stub!(:sleep)                  
+        ClassWithRequest.stub!(:sleep)                  
       end
       
       it "should sleep for 1 second before each timeout" do
         @connection.stub!(:request).and_raise(Errno::ECONNREFUSED)        
-        LVS::JsonService::Request.should_receive(:sleep).with(1)
+        ClassWithRequest.should_receive(:sleep).with(1)
         do_request_catching_errors
       end
       
@@ -181,7 +181,7 @@ describe LVS::JsonService::Request do
     end
     
     def do_request
-      LVS::JsonService::Request.http_request_with_timeout(@url, @args, @options)
+      ClassWithRequest.http_request_with_timeout(@url, @args, @options)
     end
     
     def do_request_catching_errors
@@ -197,10 +197,10 @@ describe LVS::JsonService::Request do
     end
 
     it "should call http_request_with_timeout with service, args and options" do
-      LVS::JsonService::Request.should_receive(:http_request_with_timeout).
+      ClassWithRequest.should_receive(:http_request_with_timeout).
         with(@url, @args, @options).
         and_return(@response)
-      LVS::JsonService::Request.run_remote_request(@url, @args, @options)
+      ClassWithRequest.run_remote_request(@url, @args, @options)
     end
 
     it "should return the parsed JSON result" do
@@ -208,17 +208,17 @@ describe LVS::JsonService::Request do
         {"id"=>1100, "description"=>"Handball (ABP)"},
         {"id"=>978400, "description"=>"Casino Roulette"}
       ]
-      LVS::JsonService::Request.stub!(:http_request_with_timeout).and_return(@response)
-      LVS::JsonService::Request.run_remote_request(@url, @args, @options).should == expected_result
+      ClassWithRequest.stub!(:http_request_with_timeout).and_return(@response)
+      ClassWithRequest.run_remote_request(@url, @args, @options).should == expected_result
     end
 
     it "should raise an error if the response contains PCode" do
       error_response = load_fixture('error_response.yml')
-      LVS::JsonService::Request.stub!(:http_request_with_timeout).
+      ClassWithRequest.stub!(:http_request_with_timeout).
         and_return(error_response)
 
       lambda {
-        LVS::JsonService::Request.run_remote_request(@url, @args, @options)
+        ClassWithRequest.run_remote_request(@url, @args, @options)
       }.should raise_error(LVS::JsonService::Error)
     end
   end
@@ -247,3 +247,8 @@ class MockNetHttp
   end
     
 end
+
+class ClassWithRequest
+  include LVS::JsonService::Request
+end
+
