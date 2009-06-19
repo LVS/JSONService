@@ -250,5 +250,9 @@ end
 
 class ClassWithRequest
   include LVS::JsonService::Request
+  
+  def self.require_ssl?
+    false
+  end
 end
 
