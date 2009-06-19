@@ -7,130 +7,129 @@ module LVS
     class Base
       include ::LVS::JsonService::Request
 
-      @@services = []
-      @@cache = CACHE if defined?(CACHE)
-      @@service_prefix = ""
       attr_accessor :fields
-      cattr_accessor :service_prefix
-      cattr_accessor :field_prefix
-      cattr_accessor :cache
 
       protected
 
-      def self.site=(value)
-        # value is containing AGP_LOCATION already sometimes:
-        if SSL_DISABLED
+      class << self
+        @site = ""
+        @services = []
+        @service_prefix = ""
+        @field_prefix = ""
+        @encrypted = false
+        @auth_cert = ""
+        @auth_key = ""
+        @auth_key_pass = ""
+
+        def encrypted=(value)
+          @encrypted = value
+        end
+        
+        def auth_cert=(value)
+          @auth_cert = value
+        end
+        
+        def auth_key=(value)
+          @auth_key = value
+        end
+        
+        def auth_key_pass=(value)
+          @auth_key_pass = value
+        end
+
+        def agp_location=(value)
+          @agp_location = value
+        end
+            
+        def add_service(service)
+          @services ||= []
+          @services = @services << service
+        end
+        
+        def service_prefix=(value)
+          @service_prefix = value
+        end
+        
+        def field_prefix=(value)
+          @field_prefix = value
+        end
+        
+        def site=(value)
+          # value is containing AGP_LOCATION already sometimes:
           value.gsub!(/^#{AGP_LOCATION}/, '') if AGP_LOCATION && value.match(/#{AGP_LOCATION}/)
-          agp = AGP_LOCATION.gsub(/\/$/, '')
-        else
-          value.gsub!(/^#{AGP_LOCATION}/, '')
-          value.gsub!(/^#{SSL_AGP_LOCATION}/, '') if SSL_AGP_LOCATION && value.match(/#{SSL_AGP_LOCATION}/)
-          agp = SSL_AGP_LOCATION.gsub(/\/$/, '')
-        end
-        value.gsub!(/^\//, '')
-        @@site = (agp + '/' + value)
-      end
-
-      def self.debug(message)
-        Rails.logger.debug " \033[1;4;32mLVS::JsonService\033[0m #{message}"
-      end
-
-      def self.define_cached_service(name, service, options)
-        (class<<self;self;end).send :define_method, name do |*args|
-          begin
-            args = args.first || {}
-            options[:cache_time] ||= 10
-            service_name = "call_#{name}"
-            mutex ||= Mutex::new
-            tried = false
-            mutex.lock if AppTools.is_memcached_threaded?
-            begin
-              jsn_data = { }
-              if ActionController::Base.perform_caching && @@cache
-                Rails.logger.info("JSON API CACHED CALL: #{service} - #{args.to_yaml}")
-                key = "json:call:" + Digest::MD5.hexdigest("#{service}:#{args.to_s}")
-                cached = @@cache.get(key)
-                if cached.nil?
-                  result = self.send(service_name, args)
-                  @@cache.set(key, result, options[:cache_time])
-                  jsn_data = result
-                else
-                  jsn_data = cached
-                end
-              else
-                Rails.logger.info("JSON API CALL: #{method} - #{args.to_yaml}")
-                jsn_data = self.send(service_name, args)
-              end
-              jsn_data
-            rescue MemCache::MemCacheError => err
-              raise err if tried
-              Rails.logger.info("JSON API CALL RETRY: #{err} - #{method} - #{args.to_yaml}")
-              tried = true
-              retry
-            end
-          ensure
-            mutex.unlock if AppTools.is_memcached_threaded?
-          end
-        end
-      end
-
-      def self.define_service(name, service, options = {})
-        service_name = name
-
-        service_path = service.split('.')
-        if service_path.size <= 2
-          internal_service = service
-          prefix = @@service_prefix
-        else
-          internal_service = service_path[-2..-1].join('.')
-          prefix = service_path[0..-3].join('.') + '.'
+          agp = @agp_location ? @agp_location : AGP_LOCATION
+          agp.gsub!(/\/$/, '')
+          value.gsub!(/^\//, '')
+          @site = (agp + '/' + value)
         end
 
-        if options[:cached]
-          service_name = "call_#{name}"
-          self.define_cached_service(name, service, options)
+        def debug(message)
+          LVS::JsonService::Logger.debug " \033[1;4;32mLVS::JsonService\033[0m #{message}"
         end
 
-        (class<<self;self;end).send :define_method, service_name do |args|
-          method_params, flags = args
+        def require_ssl?
+          (Module.const_defined?(:SSL_ENABLED) && SSL_ENABLED) || (Module.const_defined?(:SSL_DISABLED) && !SSL_DISABLED)
+        end
 
-          method_params ||= {}
-          options[:defaults] ||= {}
-          options[:defaults].each_pair do |key, value|
-            method_params[key] = value if method_params[key].blank?
-          end
-          options[:required] ||= {}
-          options[:required].each do |key|
-            raise LVS::JsonService::Error.new("Required field #{key} wasn't supplied", internal_service, '0', method_params) if method_params[key].blank?
-          end
-          result = self.run_remote_request(@@site + prefix + internal_service, method_params, options)
-          if flags && flags[:raw]
-            result
+        def define_service(name, service, options = {})
+          service_name = name
+
+          service_path = service.split('.')
+          if service_path.size <= 2
+            internal_service = service
+            prefix = @service_prefix
           else
-            self.parse_result(result)
+            internal_service = service_path[-2..-1].join('.')
+            prefix = service_path[0..-3].join('.') + '.'
+          end
+
+          options[:encrypted]     = @encrypted if @encrypted
+          options[:auth_cert]     = @auth_cert if @auth_cert
+          options[:auth_key]      = @auth_key if @auth_key
+          options[:auth_key_pass] = @auth_key_pass if @auth_key_pass
+          
+          (class<<self;self;end).send :define_method, service_name do |args|
+            method_params, flags = args
+
+            method_params ||= {}
+            options[:defaults] ||= {}
+            options[:defaults].each_pair do |key, value|
+              method_params[key] = value if method_params[key].blank?
+            end
+            options[:required] ||= {}
+            options[:required].each do |key|
+              raise LVS::JsonService::Error.new("Required field #{key} wasn't supplied", internal_service, '0', method_params) if method_params[key].blank?
+            end
+            result = self.run_remote_request(@site + prefix + internal_service, method_params, options)
+            if flags && flags[:raw]
+              result
+            else
+              self.parse_result(result)
+            end
+          end
+
+          add_service(name)
+        end
+
+        def fake_service(name, json)
+          (class<<self;self;end).send :define_method, name do |*args|
+            self.parse_result(JSON.parse(json))
+          end
+          add_service(name)
+        end
+
+        def services
+          @services
+        end
+
+        def parse_result(response)
+          if response.is_a?(Array)
+            response.map { |x| self.new(x) }
+          else
+            self.new(response)
           end
         end
-
-        @@services << name
-      end
-
-      def self.fake_service(name, json)
-        (class<<self;self;end).send :define_method, name do |*args|
-          self.parse_result(JSON.parse(json))
-        end
-        @@services << name
-      end
-
-      def self.services
-        @@services
-      end
-
-      def self.parse_result(response)
-        if response.is_a?(Array)
-          response.map { |x| self.new(x) }
-        else
-          self.new(response)
-        end
+        
       end
 
       def initialize(values = {})
