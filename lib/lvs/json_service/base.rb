@@ -56,7 +56,7 @@ module LVS
         
         def site=(value)
           # value is containing AGP_LOCATION already sometimes:
-          value.gsub!(/^#{AGP_LOCATION}/, '') if AGP_LOCATION && value.match(/#{AGP_LOCATION}/)
+          value.gsub!(/^#{AGP_LOCATION}/, '') if defined?(AGP_LOCATION) && value.match(/#{AGP_LOCATION}/)
           agp = @agp_location ? @agp_location : AGP_LOCATION
           agp.gsub!(/\/$/, '')
           value.gsub!(/^\//, '')
@@ -111,7 +111,7 @@ module LVS
           add_service(name)
         end
 
-        def fake_service(name, json)
+        def fake_service(name, json, options = {})
           (class<<self;self;end).send :define_method, name do |*args|
             self.parse_result(JSON.parse(json))
           end
