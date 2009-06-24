@@ -135,16 +135,27 @@ module LVS
       def initialize(values = {})
         values.each_pair do |key, value|
           key = key.underscore
-          self.class.send(:define_method, key, proc {self.instance_variable_get("@#{key}")})
-          self.class.send(:define_method, "#{key}=", proc {|value| self.instance_variable_set("@#{key}", value)})
+          new_instance_methods = "
+            def #{key}
+              @#{key}
+            end
+            def #{key}=(value)
+              @#{key} = value
+            end
+          "
 
           # If the key starts with has_ create alias to has_ method removing has
           # and putting ? at the end
           if key =~ /^has_/
             temp_key = "#{key.gsub(/^has_/, '')}?"
-            self.class.send(:define_method, temp_key, proc {self.instance_variable_get("@#{key}")})
-            self.class.send(:define_method, "#{temp_key}=", proc {|value| self.instance_variable_set("@#{key}", value)})
-          end
+            new_instance_methods << "
+              def #{temp_key}
+                @#{key}
+              end
+             "
+           end
+
+          self.instance_eval(new_instance_methods)
 
           if value.is_a?(Hash)
             self.instance_variable_set("@#{key}", self.class.new(value))
