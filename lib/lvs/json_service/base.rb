@@ -17,6 +17,7 @@ module LVS
         @service_prefix = ""
         @field_prefix = ""
         @encrypted = false
+        @ignore_missing = false
         @auth_cert = ""
         @auth_key = ""
         @auth_key_pass = ""
@@ -61,6 +62,14 @@ module LVS
           agp.gsub!(/\/$/, '')
           value.gsub!(/^\//, '')
           @site = (agp + '/' + value)
+        end
+        
+        def ignore_missing=(value)
+          @ignore_missing = value
+        end
+
+        def ignore_missing
+          @ignore_missing
         end
 
         def debug(message)
@@ -178,8 +187,10 @@ module LVS
       end
 
       def method_missing(*args)
-        self.class.debug("Method #{args[0]} called on #{self.class} but is non-existant, returned default FALSE")
-        super
+        unless self.class.ignore_missing
+          self.class.debug("Method #{args[0]} called on #{self.class} but is non-existant, returned default FALSE")
+          super
+        end
       end
     end
 
