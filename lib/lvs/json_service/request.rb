@@ -78,15 +78,17 @@ module LVS
           
           if options[:cached_for]
             timing = "CACHED"
-            response = Rails.cache.fetch([service, args].cache_key, :expires_in => options[:cached_for]) do
+            response, result = Rails.cache.fetch([service, args].cache_key, :expires_in => options[:cached_for]) do
               start = Time.now
               response = http_request_with_timeout(service, args, options)
+              result = JSON.parse(response.body)
               timing = ("%.1f" % ((Time.now - start) * 1000)) + "ms"
-              response
+              [response, result]
             end
           else
             start = Time.now
             response = http_request_with_timeout(service, args, options)
+            result = JSON.parse(response.body)
             timing = ("%.1f" % ((Time.now - start) * 1000)) + "ms"
           end
           
@@ -95,7 +97,6 @@ module LVS
           else
             LVS::JsonService::Logger.debug "Response Snippet (#{timing}): #{response.body.gsub(/\n/, '')[0..1024]}"
           end
-          result = JSON.parse(response.body)
           if result.is_a?(Hash) && result.has_key?("PCode")
             raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
           end

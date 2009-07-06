@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{JSONService}
-  s.version = "0.2.3"
+  s.version = "0.2.4"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["LVS"]
-  s.date = %q{2009-06-26}
+  s.date = %q{2009-07-06}
   s.email = %q{info@lvs.co.uk}
   s.extra_rdoc_files = [
     "LICENSE",
