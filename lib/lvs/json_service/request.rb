@@ -16,8 +16,6 @@ module LVS
           uri = URI.parse(service)
 
           http = Net::HTTP.new(uri.host, uri.port)
-        
-          http = Net::HTTP.new(uri.host, uri.port)
           if options[:encrypted] || require_ssl?
             http.use_ssl = true
             # Self-signed certs give streams of "warning: peer certificate won't be verified in this SSL session"
