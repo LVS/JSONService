@@ -90,7 +90,7 @@ module LVS
             timing = ("%.1f" % ((Time.now - start) * 1000)) + "ms"
           end
           
-          if response.body.size < 1024
+          if response.body.size < 1024 || options[:debug]
             LVS::JsonService::Logger.debug "Response (#{timing}): #{response.body.gsub(/\n/, '')}"
           else
             LVS::JsonService::Logger.debug "Response Snippet (#{timing}): #{response.body.gsub(/\n/, '')[0..1024]}"
