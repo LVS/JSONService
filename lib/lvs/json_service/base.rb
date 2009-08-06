@@ -211,5 +211,6 @@ module LVS
     class NotFoundError < Error; end
     class TimeoutError < Error; end
     class BackendUnavailableError < Error; end
+    class NotModified < Error; end
   end
 end

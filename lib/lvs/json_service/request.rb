@@ -68,6 +68,10 @@ module LVS
             raise LVS::JsonService::NotFoundError.new("404 Found for the service", 404, service, args)
           end
 
+          if response.is_a?(Net::HTTPNotModified)
+            raise LVS::JsonService::NotModified.new("304 Data hasn't changed", 304, service, args)
+          end
+
           response
         end
 

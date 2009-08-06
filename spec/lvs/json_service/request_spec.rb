@@ -180,6 +180,13 @@ describe LVS::JsonService::Request do
       }.should raise_error(LVS::JsonService::NotFoundError)
     end
     
+    it "should raise LVS::JsonService::NotModified if HTTPNotModified is raised" do
+      @connection.stub!(:request).and_return(Net::HTTPNotModified.new(304, 1.1, "Not Modified"))
+      lambda {
+        do_request
+      }.should raise_error(LVS::JsonService::NotModified)
+    end
+    
     def do_request
       ClassWithRequest.http_request_with_timeout(@url, @args, @options)
     end
