@@ -97,7 +97,7 @@ module LVS
           if response.body.size < 1024 || options[:debug]
             LVS::JsonService::Logger.debug "Response (#{timing}): #{response.body.gsub(/\n/, '')}"
           else
-            LVS::JsonService::Logger.debug "Response Snippet (#{timing}): #{response.body.gsub(/\n/, '')[0..1024]}"
+            LVS::JsonService::Logger.debug "Response Snippet (#{timing} to return #{"%.1f" % (response.body.size/1024)}kB): #{response.body.gsub(/\n/, '')[0..1024]}"
           end
           if result.is_a?(Hash) && result.has_key?("PCode")
             raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
