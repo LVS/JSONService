@@ -30,6 +30,6 @@ describe LVS::JsonService::Base do
   end
   
   it "should convert date columns to dates" do
-    TestServiceForFakingCall.details.start_date.to_s(:rfc822).should eql("Thu, 23 Apr 2009 15:56:05 +0100")
+    TestServiceForFakingCall.details.start_date.utc.to_s(:rfc822).should eql("Thu, 23 Apr 2009 14:56:05 +0000")
   end
 end
