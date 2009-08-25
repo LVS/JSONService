@@ -7,9 +7,9 @@ class TestServiceForFakingCall < LVS::JsonService::Base
   self.field_prefix = 'event_'
 
   fake_service :details, 
-    '{"id":1, "status":"OK", "count":2, "start_date":1240498565709, "has_owner":1, 
-    "bets":[{"bet_amount":123}, {"bet_amount":456}],
-    "start_date":1240498565709}'
+    '{"id":1, "status":"OK", "count":2, "startDate":1240498565709, "hasOwner":1, 
+    "bets":[{"betAmount":123}, {"betAmount":456}],
+    "startDate":1240498565709}'
 end
 
 describe LVS::JsonService::Base do

@@ -18,4 +18,15 @@ describe LVS::JsonService::Base do
     obj = RaiseOnMissingExample.new
     lambda {obj.do_voodoo}.should raise_error(NoMethodError)
   end
+  
+  it "should find camelCase attributes using camelCase or ruby_sytax" do
+    class AttributeNames < LVS::JsonService::Base
+      self.ignore_missing = true
+      fake_service :call, '{"longMethodName":1}'
+    end
+    obj = AttributeNames.call
+    obj.longMethodName.should eql(1)
+    obj.long_method_name.should eql(1)
+  end
+  
 end

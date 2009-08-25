@@ -142,55 +142,47 @@ module LVS
       end
 
       def initialize(values = {})
-        values.each_pair do |key, value|
-          key = key.underscore
-          new_instance_methods = "
-            def #{key}
-              @#{key}
-            end
-            def #{key}=(value)
-              @#{key} = value
-            end
-          "
-
-          # If the key starts with has_ create alias to has_ method removing has
-          # and putting ? at the end
-          if key =~ /^has_/
-            temp_key = "#{key.gsub(/^has_/, '')}?"
-            new_instance_methods << "
-              def #{temp_key}
-                @#{key}
-              end
-             "
-           end
-
-          self.instance_eval(new_instance_methods)
-
-          if value.is_a?(Hash)
-            self.instance_variable_set("@#{key}", self.class.new(value))
-          elsif value.is_a?(Array)
-            self.instance_variable_set("@#{key}", value.collect {|v| if v.is_a?(Hash) or v.is_a?(Array) then self.class.new(v) else v end })
-          else
-            if key =~ /date$/
-              value = Time.at(value/1000)
-            elsif key =~ /^has_/
-              self.instance_variable_set("@#{key}", value)
-              !(value == 0 || value.blank?)
-            elsif key =~ /\?$/
-              key = "has_#{key.chop}"
-              !(value == 0 || value.blank?)
-            end
-
-            self.instance_variable_set("@#{key}", value)
+        @data = values
+      end
+      
+      def id
+        @data["id"]
+      end
+      
+      def name_to_key(name)
+        key = name.gsub(/[=?]/, '')
+        key.camelize(:lower)
+      end
+      
+      def method_missing(name, *args)
+        name = name.to_s
+        key = name_to_key(name)
+        value = @data[key]
+        if name =~ /=$/
+          @data[key] = args[0]
+        elsif name =~ /\?$/
+          value = @data[name_to_key("has_#{key}")]
+          !(value == 0 || value.blank?)
+        elsif name =~ /^has_/
+          !(value == 0 || value.blank?)
+        else
+          if (value.is_a?(Hash))
+            value = self.class.new(value)
+          elsif (value.is_a?(Array))
+            value = value.collect {|v| if v.is_a?(Hash) or v.is_a?(Array) then self.class.new(v) else v end }
+          elsif name =~ /date$/
+            value = Time.at(value/1000)
           end
         end
-      end
-
-      def method_missing(*args)
-        unless self.class.ignore_missing
-          self.class.debug("Method #{args[0]} called on #{self.class} but is non-existant, returned default FALSE")
-          super
+        if value.nil?
+          if self.class.ignore_missing
+            self.class.debug("Method #{name} called on #{self.class} but is non-existant, returned nil")
+            return nil
+          else
+            raise NoMethodError.new("Method #{name} called on #{self.class} but is non-existant, returned nil")
+          end
         end
+        value
       end
     end
 
