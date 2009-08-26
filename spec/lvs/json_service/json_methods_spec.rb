@@ -18,7 +18,11 @@ describe LVS::JsonService::Base do
   end
   
   it "should respond to bet_amount on the first element of the array of bets" do
-    TestServiceForFakingCall.details(:num_results => 5).bets[0].bet_amount.should eql(123)
+    TestServiceForFakingCall.details(:num_results => 5).bets[0].respond_to?(:bet_amount).should be_true
+  end
+  
+  it "should not respond to bet_other on the first element of the array of bets" do
+    TestServiceForFakingCall.details(:num_results => 5).bets[0].respond_to?(:bet_other).should be_false
   end
   
   it "should have an id of 1" do

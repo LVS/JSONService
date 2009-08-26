@@ -154,8 +154,18 @@ module LVS
         key.camelize(:lower)
       end
       
+      def respond_to?(name)
+        name = name.to_s
+        key = name_to_key(name)
+        value = @data[key]
+        !value.nil?
+      end
+      
       def method_missing(name, *args)
         name = name.to_s
+        if name == "respond_to?" # don't know why this hack is necessary, but it is at the moment...
+          return respond_to?(args[0])
+        end
         key = name_to_key(name)
         value = @data[key]
         if name =~ /=$/
