@@ -17,6 +17,10 @@ describe LVS::JsonService::Base do
     TestServiceForFakingCall.details(:num_results => 5).bets.should be_an(Array)
   end
   
+  it "should respond to bet_amount on the first element of the array of bets" do
+    TestServiceForFakingCall.details(:num_results => 5).bets[0].bet_amount.should eql(123)
+  end
+  
   it "should have an id of 1" do
     TestServiceForFakingCall.details(:num_results => 5).id.should eql(1)
   end
@@ -31,5 +35,15 @@ describe LVS::JsonService::Base do
   
   it "should convert date columns to dates" do
     TestServiceForFakingCall.details.start_date.utc.to_s(:rfc822).should eql("Thu, 23 Apr 2009 14:56:05 +0000")
+  end
+  
+  it "should find camelCase attributes using camelCase or ruby_sytax" do
+    class AttributeNames < LVS::JsonService::Base
+      self.ignore_missing = true
+      fake_service :call, '{"longMethodName":1}'
+    end
+    obj = AttributeNames.call
+    obj.longMethodName.should eql(1)
+    obj.long_method_name.should eql(1)
   end
 end
