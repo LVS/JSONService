@@ -133,7 +133,7 @@ module LVS
 
         def parse_result(response)
           if response.is_a?(Array)
-            response.map { |x| self.new(x) }
+            array = response.map { |x| self.new(x) }
           else
             self.new(response)
           end
@@ -143,6 +143,7 @@ module LVS
 
       def initialize(values = {})
         @data = values
+        @manually_set = {}
       end
       
       def id
@@ -170,13 +171,17 @@ module LVS
         value = @data[key]
         if name =~ /=$/
           @data[key] = args[0]
+          @manually_set[key] = true
+          value = args[0]
         elsif name =~ /\?$/
           value = @data[name_to_key("has_#{key}")]
           !(value == 0 || value.blank?)
         elsif name =~ /^has_/
           !(value == 0 || value.blank?)
         else
-          if (value.is_a?(Hash))
+          if (@manually_set[key])
+            value
+          elsif (value.is_a?(Hash))
             value = self.class.new(value)
           elsif (value.is_a?(Array))
             value = value.collect {|v| if v.is_a?(Hash) or v.is_a?(Array) then self.class.new(v) else v end }
