@@ -170,17 +170,16 @@ module LVS
         key = name_to_key(name)
         value = @data[key]
         if name =~ /=$/
-          @data[key] = args[0]
-          @manually_set[key] = true
-          value = args[0]
+          @data[key] = ManuallySetData.new(args[0])
+          value = @data[key]
         elsif name =~ /\?$/
           value = @data[name_to_key("has_#{key}")]
           !(value == 0 || value.blank?)
         elsif name =~ /^has_/
           !(value == 0 || value.blank?)
         else
-          if (@manually_set[key])
-            value
+          if (value.is_a?(ManuallySetData))
+            value = value.data
           elsif (value.is_a?(Hash))
             value = self.class.new(value)
           elsif (value.is_a?(Array))
@@ -198,6 +197,14 @@ module LVS
           end
         end
         value
+      end
+    end
+
+    class ManuallySetData
+      attr_reader :data
+      
+      def initialize(value)
+        @data = value
       end
     end
 
