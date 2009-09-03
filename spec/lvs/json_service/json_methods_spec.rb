@@ -9,7 +9,7 @@ class TestServiceForFakingCall < LVS::JsonService::Base
   fake_service :details, 
     '{"id":1, "status":"OK", "count":2, "startDate":1240498565709, "hasOwner":1, 
     "bets":[{"betAmount":123}, {"betAmount":456}],
-    "startDate":1240498565709}'
+    "startDate":1240498565709, "with123":1}'
 end
 
 describe LVS::JsonService::Base do
@@ -39,6 +39,10 @@ describe LVS::JsonService::Base do
   
   it "should convert date columns to dates" do
     TestServiceForFakingCall.details.start_date.utc.to_s(:rfc822).should eql("Thu, 23 Apr 2009 14:56:05 +0000")
+  end
+  
+  it "should recognise keys with integers in them" do
+    TestServiceForFakingCall.details.with_123.should eql(1)
   end
   
   it "should find camelCase attributes using camelCase or ruby_sytax" do
