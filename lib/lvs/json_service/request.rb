@@ -1,5 +1,6 @@
 require 'json'
 require 'lvs/json_service/logger'
+require 'lvs/json_service/connection_manager'
 
 module LVS
   module JsonService
@@ -9,36 +10,30 @@ module LVS
         base.extend ClassMethods    
       end      
       
-      module ClassMethods      
-      
+      module ClassMethods
         def http_request_with_timeout(service, args, options)
-
           uri = URI.parse(service)
-
-          http = Net::HTTP.new(uri.host, uri.port)
-          if options[:encrypted] || require_ssl?
-            http.use_ssl = true
-            # Self-signed certs give streams of "warning: peer certificate won't be verified in this SSL session"
-            http.verify_mode = OpenSSL::SSL::VERIFY_NONE 
-            LVS::JsonService::Logger.debug "Using SSL"
-            if options[:auth_cert]
-              LVS::JsonService::Logger.debug "Using Auth"
-              http.cert = OpenSSL::X509::Certificate.new(File.read(options[:auth_cert]))
-              http.key = OpenSSL::PKey::RSA.new(File.read(options[:auth_key]), options[:auth_key_password])
-            end
-          end
-        
-          http.open_timeout = options[:timeout] || 1
-          http.read_timeout = options[:timeout] || 1
         
           req = Net::HTTP::Post.new(uri.path)
           req.form_data = { "object_request" => args.to_json }
 
+          options[:encrypted] ||= require_ssl?
           retries = options[:retries] || 0
+          hard_retries = 1 # For persistent connection failures
 
           begin
-            retries -= 1          
-            response = http.start { |connection| connection.request(req) }
+            retries -= 1
+                    
+            http = LVS::JsonService::ConnectionManager.get_connection(uri.host, uri.port, options)
+            response = http.request(req)
+          
+          rescue Errno::EPIPE, EOFError, Errno::ECONNRESET
+            hard_retries -= 1
+            if hard_retries >= 0
+              sleep(1)
+              LVS::JsonService::ConnectionManager.reset_connection(uri.host, uri.port, options)
+              retry
+            end
           
           rescue Timeout::Error => e
             if retries >= 0

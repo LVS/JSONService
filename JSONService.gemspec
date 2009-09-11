@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{JSONService}
-  s.version = "0.3.1"
+  s.version = "0.3.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["LVS", "andyjeffries"]
@@ -24,12 +24,17 @@ Gem::Specification.new do |s|
      "lib/lvs/json_service/base.rb",
      "lib/lvs/json_service/logger.rb",
      "lib/lvs/json_service/request.rb",
+     "lib/lvs/json_service/connection_manager.rb",
      "spec/fixtures/error_response.yml",
      "spec/fixtures/response.yml",
      "spec/json_service_spec.rb",
      "spec/lvs/json_service/base_spec.rb",
+     "spec/lvs/json_service/connection_manager_spec.rb",
+     "spec/lvs/json_service/json_methods_spec.rb",
      "spec/lvs/json_service/logger_spec.rb",
      "spec/lvs/json_service/request_spec.rb",
+     "spec/lvs/json_service/mock_net_http.rb",
+     "spec/lvs/json_service/setting_fields_spec.rb",
      "spec/spec.opts",
      "spec/spec_helper.rb"
   ]
