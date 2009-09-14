@@ -27,7 +27,7 @@ module LVS
             http = LVS::JsonService::ConnectionManager.get_connection(uri.host, uri.port, options)
             response = http.request(req)
           
-          rescue Errno::EPIPE, EOFError, Errno::ECONNRESET
+          rescue Errno::EPIPE, EOFError, Errno::ECONNRESET, Errno::ECONNABORTED
             hard_retries -= 1
             if hard_retries >= 0
               sleep(1)
