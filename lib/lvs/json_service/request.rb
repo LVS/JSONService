@@ -15,6 +15,7 @@ module LVS
           uri = URI.parse(service)
         
           req = Net::HTTP::Post.new(uri.path)
+          args[:requestId] = Digest::SHA1.hexdigest((rand(4294967295)+Time.now.usec).to_s)
           req.form_data = { "object_request" => args.to_json }
 
           options[:encrypted] ||= require_ssl?
@@ -60,7 +61,7 @@ module LVS
           end
 
           if response.is_a?(Net::HTTPNotFound)
-            raise LVS::JsonService::NotFoundError.new("404 Found for the service", 404, service, args)
+            raise LVS::JsonService::NotFoundError.new("404 Found for the service #{service}", 404, service, args)
           end
 
           if response.is_a?(Net::HTTPNotModified)
