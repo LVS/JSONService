@@ -2,4 +2,4 @@
 coverage/
 spec/reports
 pkg/
-JSONService-*.gem
+LVS-JSONService-*.gem

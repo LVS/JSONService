@@ -11,11 +11,15 @@ module LVS
       end      
       
       module ClassMethods
+        def unique_request_id
+          Digest::SHA1.hexdigest((rand(4294967295)+Time.now.usec).to_s)
+        end
+        
         def http_request_with_timeout(service, args, options)
           uri = URI.parse(service)
         
           req = Net::HTTP::Post.new(uri.path)
-          args[:requestId] = Digest::SHA1.hexdigest((rand(4294967295)+Time.now.usec).to_s)
+          args[:requestId] = unique_request_id
           req.form_data = { "object_request" => args.to_json }
 
           options[:encrypted] ||= require_ssl?

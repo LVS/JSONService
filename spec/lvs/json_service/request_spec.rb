@@ -54,6 +54,8 @@ describe LVS::JsonService::Request do
     end
     
     it "should assign the JSON parameters to a Net::HTTP::Post object" do
+      ClassWithRequest.stub!(:unique_request_id).and_return("1")
+      @args[:requestId] = "1"
       @mock_post.should_receive(:form_data=).with({ "object_request" => @args.to_json })
       do_request
     end

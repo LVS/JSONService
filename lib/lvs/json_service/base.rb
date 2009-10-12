@@ -158,8 +158,17 @@ module LVS
       def respond_to?(name)
         name = name.to_s
         key = name_to_key(name)
-        value = @data[key]
+        value = value_for_key(key)
         !value.nil?
+      end
+      
+      def value_for_key(key)
+        value = @data[key]
+        if value.blank?
+          key[0..0] = key[0..0].upcase # TODO: This feels like an awful hack, but having a day when nothing's working
+          value = @data[key]
+        end
+        value
       end
       
       def method_missing(name, *args)
@@ -168,7 +177,7 @@ module LVS
           return respond_to?(args[0])
         end
         key = name_to_key(name)
-        value = @data[key]
+        value = value_for_key(key)
         if name =~ /=$/
           @data[key] = ManuallySetData.new(args[0])
           value = @data[key]

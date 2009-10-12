@@ -9,7 +9,7 @@ class TestServiceForJsonMethodsCall < LVS::JsonService::Base
   fake_service :details, 
     '{"id":1, "status":"OK", "count":2, "startDate":1240498565709, "hasOwner":1, 
     "bets":[{"betAmount":123}, {"betAmount":456}],
-    "startDate":1240498565709, "with123":1}'
+    "startDate":1240498565709, "with123":1, "ECredit":1}'
 end
 
 describe LVS::JsonService::Base do
@@ -53,5 +53,9 @@ describe LVS::JsonService::Base do
     obj = AttributeNames.call
     obj.longMethodName.should eql(1)
     obj.long_method_name.should eql(1)
+  end
+  
+  it "should recognise keys that start with two capital letters" do
+    lambda {TestServiceForJsonMethodsCall.details.e_credit.should eql(1)}.should_not raise_error(NoMethodError)
   end
 end
