@@ -164,11 +164,11 @@ module LVS
       
       def value_for_key(key)
         value = @data[key]
-        if value.blank?
-          key[0..0] = key[0..0].upcase # TODO: This feels like an awful hack, but having a day when nothing's working
-          value = @data[key]
+        if @data.has_key?(key)
+          value
+        else
+          @data[key.camelize]
         end
-        value
       end
       
       def method_missing(name, *args)
@@ -199,10 +199,10 @@ module LVS
         end
         if value.nil?
           if self.class.ignore_missing
-            self.class.debug("Method #{name} called on #{self.class} but is non-existant, returned nil")
+            self.class.debug("Method #{name} with key #{key} called on #{self.class} but is non-existant, returned nil")
             return nil
           else
-            raise NoMethodError.new("Method #{name} called on #{self.class} but is non-existant, returned nil")
+            raise NoMethodError.new("Method #{name} with key #{key} called on #{self.class} but is non-existant, returned nil")
           end
         end
         value
