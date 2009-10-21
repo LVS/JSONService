@@ -234,6 +234,78 @@ describe LVS::JsonService::Request do
         ClassWithRequest.run_remote_request(@url, @args, @options)
       }.should raise_error(LVS::JsonService::Error)
     end
+
+    it "should generate a unique Request ID" do
+      ClassWithRequest.unique_request_id.should_not eql(ClassWithRequest.unique_request_id)
+    end
+    
+    it "should send a Request ID" do
+      @mock_post = mock(:post, :null_object => true)
+      Net::HTTP::Post.stub!(:new).and_return(@mock_post)
+      @mock_post.should_receive(:add_field).with("X-LVS-Request-ID", '1234')
+      
+      @mock_http = MockNetHttp.new
+      @connection = @mock_http.connection
+      Net::HTTP.stub!(:new).and_return(@mock_http)      
+
+      response = {}
+      response.stub!(:body).and_return("")
+      JSON.stub(:parse)
+      ClassWithRequest.stub!(:unique_request_id).and_return('1234')
+      ClassWithRequest.stub!(:verify_request_id)
+      ClassWithRequest.run_remote_request(@url, @args, @options)
+    end
+    
+    it "should raise an error if the Request ID doesn't match the one returned" do
+      @mock_post = mock(:post, :null_object => true)
+      Net::HTTP::Post.stub!(:new).and_return(@mock_post)
+      @mock_http = MockNetHttp.new
+      @connection = @mock_http.connection
+      Net::HTTP.stub!(:new).and_return(@mock_http)      
+
+      response = {"X-LVS-Request-ID" => "5678"}
+      response.stub!(:body).and_return("")
+      ClassWithRequest.stub!(:http_request_with_timeout).and_return(response)
+      JSON.stub(:parse)
+      ClassWithRequest.stub!(:unique_request_id).and_return('1234')
+      lambda {
+        ClassWithRequest.run_remote_request(@url, @args, @options)
+      }.should raise_error(LVS::JsonService::RequestMismatchError)
+    end
+    
+    it "shouldn't raise an error if the Request ID matches the one returned" do
+      @mock_post = mock(:post, :null_object => true)
+      Net::HTTP::Post.stub!(:new).and_return(@mock_post)
+      @mock_http = MockNetHttp.new
+      @connection = @mock_http.connection
+      Net::HTTP.stub!(:new).and_return(@mock_http)      
+
+      response = {"X-LVS-Request-ID" => "5678"}
+      response.stub!(:body).and_return("")
+      ClassWithRequest.stub!(:http_request_with_timeout).and_return(response)
+      JSON.stub(:parse)
+      ClassWithRequest.stub!(:unique_request_id).and_return('5678')
+      lambda {
+        ClassWithRequest.run_remote_request(@url, @args, @options)
+      }.should_not raise_error(LVS::JsonService::RequestMismatchError)
+    end
+    
+    it "shouldn't raise an error if there is no response Request ID header" do
+      @mock_post = mock(:post, :null_object => true)
+      Net::HTTP::Post.stub!(:new).and_return(@mock_post)
+      @mock_http = MockNetHttp.new
+      @connection = @mock_http.connection
+      Net::HTTP.stub!(:new).and_return(@mock_http)      
+
+      response = {}
+      response.stub!(:body).and_return("")
+      ClassWithRequest.stub!(:http_request_with_timeout).and_return(response)
+      JSON.stub(:parse)
+      ClassWithRequest.stub!(:unique_request_id).and_return('5678')
+      lambda {
+        ClassWithRequest.run_remote_request(@url, @args, @options)
+      }.should_not raise_error(LVS::JsonService::RequestMismatchError)
+    end
   end
   
 end

@@ -220,7 +220,7 @@ module LVS
     class Error < StandardError
       attr_reader :message, :code, :service, :args, :json_response
 
-      def initialize(message, code, service, args, response=nil)
+      def initialize(message, code=nil, service=nil, args=nil, response=nil)
         @message = message
         @code   = code
         @service = service
@@ -235,5 +235,6 @@ module LVS
     class TimeoutError < Error; end
     class BackendUnavailableError < Error; end
     class NotModified < Error; end
+    class RequestMismatchError < Error; end
   end
 end

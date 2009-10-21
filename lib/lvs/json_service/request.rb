@@ -19,7 +19,8 @@ module LVS
           uri = URI.parse(service)
         
           req = Net::HTTP::Post.new(uri.path)
-          args[:requestId] = unique_request_id
+          req.add_field("X-LVS-Request-ID", options[:request_id])
+          
           req.form_data = { "object_request" => args.to_json }
 
           options[:encrypted] ||= require_ssl?
@@ -78,11 +79,13 @@ module LVS
         def run_remote_request(service, args, options = {})
           LVS::JsonService::Logger.debug "Requesting '#{service}' with #{args.to_json}"
           
+          options[:request_id] = unique_request_id
           if options[:cached_for]
             timing = "CACHED"
             response, result = Rails.cache.fetch([service, args].cache_key, :expires_in => options[:cached_for]) do
               start = Time.now
               response = http_request_with_timeout(service, args, options)
+              verify_request_id(response, options[:request_id])
               net_timing = ("%.1f" % ((Time.now - start) * 1000)) + "ms"
               start = Time.now
               result = JSON.parse(response.body)
@@ -93,6 +96,7 @@ module LVS
           else
             start = Time.now
             response = http_request_with_timeout(service, args, options)
+            verify_request_id(response, options[:request_id])
             net_timing = ("%.1f" % ((Time.now - start) * 1000)) + "ms"
             start = Time.now
             result = JSON.parse(response.body)
@@ -109,6 +113,14 @@ module LVS
             raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
           end
           result
+        end
+        
+        def verify_request_id(response, request_id)
+          returned_request_id = response["X-LVS-Request-ID"]
+          if returned_request_id != request_id && !returned_request_id.blank?
+            raise LVS::JsonService::RequestMismatchError.new("The sent Request ID (#{request_id}) didn't " + 
+              "match the returned Request ID (#{returned_request_id}) ")
+          end
         end
       end
     end
