@@ -120,6 +120,8 @@ module LVS
           if returned_request_id != request_id && !returned_request_id.blank?
             raise LVS::JsonService::RequestMismatchError.new("The sent Request ID (#{request_id}) didn't " + 
               "match the returned Request ID (#{returned_request_id}) ")
+          else
+            LVS::JsonService::Logger.debug "Sent and received Request ID - #{request_id}"
           end
         end
       end
