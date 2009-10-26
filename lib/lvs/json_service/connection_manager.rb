@@ -3,7 +3,7 @@ module LVS
     class ConnectionManager
       def self.get_connection(host, port, options)
         @@connections ||= {}
-        key = create_key(host, port, options)
+        key = create_key(host, port)
         connection = @@connections[key]
         if connection.nil? || !connection.started?
           connection = create_connection(host, port, options)
@@ -14,8 +14,27 @@ module LVS
       
       def self.reset_connection(host, port, options)
         @@connections ||= {}
-        key = create_key(host, port, options)
+        key = create_key(host, port)
+        begin
+          LVS::JsonService::Logger.debug "Disconnecting from #{host}:#{port}"
+          @@connections[key].finish
+        rescue IOError
+          # Do nothing
+        end
         @@connections.delete(key)
+      end
+
+      def self.close_all_connections
+        LVS::JsonService::Logger.debug "Requesting to close all (#{@@connections.size}) connections"
+        @@connections.each do |key, connection|
+          begin
+            LVS::JsonService::Logger.debug "Disconnecting from #{host}:#{port}"
+            connection.finish
+          rescue IOError
+            # Do nothing
+          end
+        end
+        reset_all_connections
       end
 
       def self.reset_all_connections
@@ -38,15 +57,15 @@ module LVS
       
         http.open_timeout = options[:timeout] || 1
         http.read_timeout = options[:timeout] || 1
-        LVS::JsonService::Logger.debug "Connecting"
+        LVS::JsonService::Logger.debug "Connecting to #{host}:#{port}"
         http.start
         http
       end
       
       private
       
-      def self.create_key(host, port, options)
-        "#{host}:#{port}:#{options.to_s}"
+      def self.create_key(host, port)
+        key = "#{host}:#{port}"
       end
     end
   end
