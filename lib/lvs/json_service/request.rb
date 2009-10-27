@@ -42,11 +42,11 @@ module LVS
             end
           
           rescue Timeout::Error => e
+            LVS::JsonService::ConnectionManager.reset_connection(uri.host, uri.port, options)
             if retries >= 0
               LVS::JsonService::Logger.debug(
                 "Retrying #{service} due to TimeoutError"
               )
-              LVS::JsonService::ConnectionManager.reset_connection(uri.host, uri.port, options)
               retry
             end
             raise LVS::JsonService::TimeoutError.new("Backend failed to respond in time", 500, service, args)
