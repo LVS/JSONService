@@ -55,8 +55,6 @@ module LVS
           end
         end
       
-        http.open_timeout = options[:timeout] || 1
-        http.read_timeout = options[:timeout] || 1
         LVS::JsonService::Logger.debug "Connecting to #{host}:#{port}"
         http.start
         http

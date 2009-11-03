@@ -31,6 +31,8 @@ module LVS
             retries -= 1
                     
             http = LVS::JsonService::ConnectionManager.get_connection(uri.host, uri.port, options)
+            http.open_timeout = options[:timeout] || 1
+            http.read_timeout = options[:timeout] || 1
             response = http.request(req)
           
           rescue Errno::EPIPE, EOFError, Errno::ECONNRESET, Errno::ECONNABORTED
@@ -49,7 +51,7 @@ module LVS
               )
               retry
             end
-            raise LVS::JsonService::TimeoutError.new("Backend failed to respond in time", 500, service, args)
+            raise LVS::JsonService::TimeoutError.new("Backend failed to respond in time (#{options[:timeout]}s)", 500, service, args)
                     
           rescue Errno::ECONNREFUSED => e
             if retries >= 0
