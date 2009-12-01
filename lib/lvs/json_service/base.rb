@@ -97,7 +97,7 @@ module LVS
           options[:auth_key]      = @auth_key if @auth_key
           options[:auth_key_pass] = @auth_key_pass if @auth_key_pass
           
-          (class<<self;self;end).send :define_method, service_name do |args|
+          (class<<self;self;end).send :define_method, service_name do |*args|
             method_params, flags = args
 
             method_params ||= {}
@@ -171,10 +171,59 @@ module LVS
         end
       end
       
+      def to_s
+        str = ""
+        str << self.class.name + " 0x#{object_id.to_s(16)}\n"
+        @data.each do |key,value|
+          str << data_to_s(key, value, 2)
+        end
+        str
+      end
+      
+      def data_to_s(key, value, indent=2, lead=nil)
+        method = key.underscore
+        if method[/date$/]
+          (" " * indent) + "#{lead}#{method}: #{self.send(method.to_sym)}\n"
+        elsif value.is_a?(Fixnum) || value.is_a?(Float)
+          (" " * indent) + "#{lead}#{method}: #{value}\n"
+        elsif value.is_a?(String)
+          (" " * indent) + "#{lead}#{method}: \"#{value}\"\n"
+        elsif value.is_a?(Hash)
+          sub_data = ""
+          subindent = indent + 2
+          value.each do |key, value|
+            sub_data << data_to_s(key, value, subindent)
+            unless lead.blank?
+              subindent += lead.length 
+              lead = nil
+            end
+          end
+          (" " * indent) + "#{lead}#{method}:\n#{sub_data}"
+        elsif value.is_a?(Array)
+          sub_data = ""
+          value.each_with_index do |subvalue, index|
+            subindent = indent + 2
+            sub_data << data_to_s("#{index}", subvalue, subindent)
+            unless lead.blank?
+              subindent += lead.length 
+              lead = nil
+            end
+          end
+          (" " * indent) + "#{lead}#{method}: [\n#{sub_data}" + (" " * indent) + "]\n"
+        elsif method[/^has_/]
+          (" " * indent) + "#{lead}#{method}: \"#{value ? 'true' : 'false'}\"\n"
+        else
+          (" " * indent) + "#{lead}#{method}: \"#{value.inspect}\"\n"
+        end
+      end
+      
       def method_missing(name, *args)
         name = name.to_s
         if name == "respond_to?" # don't know why this hack is necessary, but it is at the moment...
           return respond_to?(args[0])
+        end
+        if name == "to_s" # don't know why this hack is necessary, but it is at the moment...
+          return to_s
         end
         key = name_to_key(name)
         value = value_for_key(key)
