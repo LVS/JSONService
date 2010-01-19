@@ -1,2 +1,6 @@
+require 'rubygems'
+require 'activesupport'
+require 'eventmachine'
+require 'em-http'
 require 'lvs/json_service/base'
 require 'lvs/json_service/logger'

@@ -12,15 +12,16 @@ module LVS
       protected
 
       class << self
-        @site = ""
-        @services = []
-        @service_prefix = ""
-        @field_prefix = ""
-        @encrypted = false
-        @ignore_missing = false
-        @auth_cert = ""
-        @auth_key = ""
-        @auth_key_pass = ""
+        @site               = ""
+        @services           = []
+        @service_prefix     = ""
+        @field_prefix       = ""
+        @encrypted          = false
+        @ignore_missing     = false
+        @auth_cert          = ""
+        @auth_key           = ""
+        @auth_key_pass      = ""
+        @eventmachine_async = false
 
         def encrypted=(value)
           @encrypted = value
@@ -55,6 +56,10 @@ module LVS
           @field_prefix = value
         end
         
+        def is_eventmachine_async!
+          @eventmachine_async = true
+        end
+        
         def site=(value)
           # value is containing AGP_LOCATION already sometimes:
           value.gsub!(/^#{AGP_LOCATION}/, '') if defined?(AGP_LOCATION) && value.match(/#{AGP_LOCATION}/)
@@ -80,7 +85,7 @@ module LVS
           (Module.const_defined?(:SSL_ENABLED) && SSL_ENABLED) || (Module.const_defined?(:SSL_DISABLED) && !SSL_DISABLED)
         end
 
-        def define_service(name, service, options = {})
+        def define_service(name, service, options = {}, &block)
           service_name = name
 
           service_path = service.split('.')
@@ -92,12 +97,13 @@ module LVS
             prefix = service_path[0..-3].join('.') + '.'
           end
 
-          options[:encrypted]     = @encrypted if @encrypted
-          options[:auth_cert]     = @auth_cert if @auth_cert
-          options[:auth_key]      = @auth_key if @auth_key
-          options[:auth_key_pass] = @auth_key_pass if @auth_key_pass
+          options[:encrypted]          = @encrypted if @encrypted
+          options[:eventmachine_async] = @eventmachine_async if @eventmachine_async
+          options[:auth_cert]          = @auth_cert if @auth_cert
+          options[:auth_key]           = @auth_key if @auth_key
+          options[:auth_key_pass]      = @auth_key_pass if @auth_key_pass
           
-          (class<<self;self;end).send :define_method, service_name do |*args|
+          (class<<self;self;end).send :define_method, service_name do |*args, &block|
             method_params, flags = args
 
             method_params ||= {}
@@ -109,11 +115,22 @@ module LVS
             options[:required].each do |key|
               raise LVS::JsonService::Error.new("Required field #{key} wasn't supplied", internal_service, '0', method_params) if method_params[key].blank?
             end
-            result = self.run_remote_request(@site + prefix + internal_service, method_params, options)
-            if flags && flags[:raw]
-              result
+            if block
+              self.run_remote_request(@site + prefix + internal_service, method_params, options) do |result|
+                if flags && flags[:raw]
+                  yield(result)
+                else
+                  block.call(self.parse_result(result))
+                end
+              end
             else
-              self.parse_result(result)
+              result = self.run_remote_request(@site + prefix + internal_service, method_params, options)
+              puts "In service call non-block"
+              if flags && flags[:raw]
+                result
+              else
+                self.parse_result(result)
+              end
             end
           end
 
@@ -132,7 +149,9 @@ module LVS
         end
 
         def parse_result(response)
-          if response.is_a?(Array)
+          if response.is_a?(LVS::JsonService::Error)
+            response
+          elsif response.is_a?(Array)
             array = response.map { |x| self.new(x) }
           else
             self.new(response)
@@ -267,7 +286,7 @@ module LVS
     end
 
     class Error < StandardError
-      attr_reader :message, :code, :service, :args, :json_response
+      attr_reader :message, :code, :service, :args, :json_response, :backtrace
 
       def initialize(message, code=nil, service=nil, args=nil, response=nil)
         @message = message
@@ -275,6 +294,7 @@ module LVS
         @service = service
         @args   = args
         @json_response = response
+        @backtrace = caller
 
         super "#{message}\n#{service} (#{args.inspect})"
       end
