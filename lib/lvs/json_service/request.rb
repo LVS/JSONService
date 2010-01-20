@@ -136,7 +136,6 @@ module LVS
                   end
                 end
                 yield(result) if block_given?
-                return result
               end
             else
               http_standard_request_with_timeout(service, args, options) do |response|
@@ -154,7 +153,6 @@ module LVS
                   raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
                 end
                 yield(result) if block_given?
-                return result
               end
             end
           else
