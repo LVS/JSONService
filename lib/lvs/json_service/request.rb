@@ -157,11 +157,12 @@ module LVS
                 return result
               end
             end
+          else
+            log_response(timing, response.body, options)
+            if result.is_a?(Hash) && result.has_key?("PCode")
+              raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
+            end
           end
-          if result.is_a?(Hash) && result.has_key?("PCode")
-            raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
-          end
-          log_response(timing, response.body, options)
           result
         end
 
