@@ -136,7 +136,7 @@ module LVS
                   end
                 end
                 yield(result) if block_given?
-                result
+                return result
               end
             else
               http_standard_request_with_timeout(service, args, options) do |response|
@@ -154,10 +154,15 @@ module LVS
                   raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
                 end
                 yield(result) if block_given?
-                result
+                return result
               end
             end
           end
+          if result.is_a?(Hash) && result.has_key?("PCode")
+            raise LVS::JsonService::Error.new(result["message"], result["PCode"], service, args, result)
+          end
+          log_response(timing, response.body, options)
+          result
         end
 
         def log_response(timing, body, options)
