@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{LVS-JSONService}
-  s.version = "0.4.4"
+  s.version = "0.4.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["LVS", "andyjeffries"]
@@ -50,6 +50,9 @@ Gem::Specification.new do |s|
      "spec/lvs/json_service/request_spec.rb",
      "spec/spec_helper.rb"
   ]
+  s.add_dependency('activesupport', '>= 2.3.5')
+  s.add_dependency('eventmachine', '>= 0.12.10')
+  s.add_dependency('em-http-request', '>= 0.2.6')
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
