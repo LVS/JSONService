@@ -125,7 +125,6 @@ module LVS
               end
             else
               result = self.run_remote_request(@site + prefix + internal_service, method_params, options)
-              puts "In service call non-block"
               if flags && flags[:raw]
                 result
               else
