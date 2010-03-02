@@ -19,21 +19,19 @@ class Event < LVS::JsonService::Base
   self.service_prefix = 'com.lvsint.abp.client.json.commands.'
   self.field_prefix = 'event_'
   
-  define_service :last_minute, 'FDJListLastMinuteEventsService.json', 
+  define_service :special, 'DoSomethingSpecial.json', 
     :defaults => {:n => 5}, :required => [:n, :locale]
   
-  define_service :details, 'ListEventDetailsWithBasketNumberService.json',
+  define_service :details, 'ListAllEvents.json',
     :defaults => {:searchType => Event::SEARCH_TYPE_IDS}, 
     :required => [:searchType, :searchIds],
-    :optional => [:locale, :marketTypeId, :marketId, :period, 
-      :includeOutcomesYN, :includeOutcomeInfoYN, :includeEventInfoYN,
-      :filterByBookTypeAP, :filterByBookTypeEP]
+    :optional => [:locale, :period, :includeEventInfoYN]
 
 end</code></pre>
 
 You then use it just like an ActiveRecord model (at the moment it's read only - we'll add write capabilities to it in an ActiveRecord style when we need them):
 
-<pre><code>events = Event.last_minute :locale => "en-gb"
+<pre><code>events = Event.special :locale => "en-gb"
 events.each do |event|
   puts "#{event.id} #{event.title}"
 end</code></pre>
@@ -79,7 +77,7 @@ There are times when you're ready to develop on the Rails side but the Web API i
   self.service_prefix = 'com.lvsint.abp.client.json.commands.'
   self.field_prefix = 'event_'
   
-  fake_service :last_minute, '{"status":"OK", "count":2}'
+  fake_service :special, '{"status":"OK", "count":2}'
 end</code></pre>
 
 h2. Communication Resiliancy
