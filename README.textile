@@ -1,0 +1,99 @@
+h2. Purpose
+
+This gem is an internal LVS project for communicating with an AGP (Advanced Gaming Platform) backend server.
+
+h2. History
+
+In the old days there was the WebApi classes which used XML-RPC.  Then there was the 'new' ABP::API::JSN class (why JSON is abbreviated to JSN is unknown) which has all the JSON API calls in one class.
+
+This felt very un-Railsy, so Andy Jeffries wrote the new JsonService parent class, so we can treat each group of JSON services like a model.  This is similar to the way ActiveResource works (but we can't use ActiveResource as our models aren't really resources).
+
+h2. Example
+
+As a simple example of how to create a new model based JSON API class:
+
+<pre><code>require 'json_service'
+
+class Event < LVS::JsonService::Base
+  self.site = AGP_LOCATION + '/jsonservices/'
+  self.service_prefix = 'com.lvsint.abp.client.json.commands.'
+  self.field_prefix = 'event_'
+  
+  define_service :last_minute, 'FDJListLastMinuteEventsService.json', 
+    :defaults => {:n => 5}, :required => [:n, :locale]
+  
+  define_service :details, 'ListEventDetailsWithBasketNumberService.json',
+    :defaults => {:searchType => Event::SEARCH_TYPE_IDS}, 
+    :required => [:searchType, :searchIds],
+    :optional => [:locale, :marketTypeId, :marketId, :period, 
+      :includeOutcomesYN, :includeOutcomeInfoYN, :includeEventInfoYN,
+      :filterByBookTypeAP, :filterByBookTypeEP]
+
+end</code></pre>
+
+You then use it just like an ActiveRecord model (at the moment it's read only - we'll add write capabilities to it in an ActiveRecord style when we need them):
+
+<pre><code>events = Event.last_minute :locale => "en-gb"
+events.each do |event|
+  puts "#{event.id} #{event.title}"
+end</code></pre>
+
+The field names come from the JSON return field names after the field_prefix is stripped off (if present).
+
+There is also a bit of magic that converts fields ending in 'date' to be a Time value, and fields starting with has_ such as has_bets to return a boolean (and create a bets? method too).
+
+h2. Combined results
+
+The first version of json_service only worked if the result was an array of hashes.  The latest version will now accept a hash as the result and make any elements that have arrays as the values an array of objects.  For example, given the JSON as follows:
+
+<pre><code>{
+  'event_id': 132,
+  'event_location': 'Anfield, Liverpool, England',
+  'teams': [
+    {
+      'name': 'Liverpool',
+      'colour': 'Red'
+    },
+    {
+      'name': 'Everton',
+      'colour': 'Blue'
+    }
+  ]
+}</code></pre>
+
+You could then use the class in this way:
+
+<pre><code>event = Event.my_combined_call :locale => "en-gb"
+puts "ID: " + event.id
+puts "Location: " + event.location
+events.teams.each do |team|
+  puts "#{team.name}(#{event.colour})"
+end</code></pre>
+
+h2. Faking calls
+
+There are times when you're ready to develop on the Rails side but the Web API isn't ready.  You can create a fake service that just parses a hard-coded JSON string in the same way as it would if it had come back from the Web API.
+
+<pre><code>class Event < LVS::JsonService::Base
+  self.site = AGP_LOCATION + '/jsonservices/'
+  self.service_prefix = 'com.lvsint.abp.client.json.commands.'
+  self.field_prefix = 'event_'
+  
+  fake_service :last_minute, '{"status":"OK", "count":2}'
+end</code></pre>
+
+h2. Communication Resiliancy
+
+The AGP backend doesn't always reliably allow a connection and prompt response.  Therefore there is now the facility to define a timeout for a connection (and response) and an amount of retries rather than immediately failing.
+
+The new parameters are defined as per the following example:
+
+<pre><code>  define_service :last_minute, 'FDJListLastMinuteEventsService.json', 
+    :defaults => {:n => 5}, :required => [:n, :locale], :timeout => 3, :retries => 3</code></pre>
+
+The default values are 1 second timeout (note: this is actually 1 second connection timeout and 1 second read timeout, so 2 seconds total) and 0 retries.
+
+If it fails to connect or times out, it retries <code>:retries</code> times with timeout set to <code>:timeout</code> + 50%.
+
+
+Copyright (C) 2009-2010 LVS Ltd.
