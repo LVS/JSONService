@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{LVS-JSONService}
-  s.version = "0.4.6"
+  s.version = "0.4.7"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["LVS", "andyjeffries"]
@@ -10,14 +10,14 @@ Gem::Specification.new do |s|
   s.email = %q{info@lvs.co.uk}
   s.extra_rdoc_files = [
     "LICENSE",
-     "README.rdoc"
+     "README.textile"
   ]
   s.files = [
     ".gitignore",
      ".specification",
      "LVS-JSONService.gemspec",
      "LICENSE",
-     "README.rdoc",
+     "README.textile",
      "Rakefile",
      "VERSION",
      "lib/json_service.rb",
