@@ -17,7 +17,7 @@ module LVS
         key = create_key(host, port)
         begin
           LVS::JsonService::Logger.debug "Disconnecting from #{host}:#{port}"
-          @@connections[key].finish
+          @@connections[key].finish if @@connections[key]
         rescue IOError
           # Do nothing
         end
@@ -29,7 +29,7 @@ module LVS
         @@connections.each do |key, connection|
           begin
             LVS::JsonService::Logger.debug "Disconnecting from #{host}:#{port}"
-            connection.finish
+            connection.finish if connection
           rescue IOError
             # Do nothing
           end
